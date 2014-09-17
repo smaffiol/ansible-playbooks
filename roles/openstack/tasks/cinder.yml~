@@ -1,4 +1,0 @@
----
-- name: Mount Cinder volume
-  local_action: command nova volume-attach {{ vm_id }} {{ volume_id }} {{ volume_device }}
-  register: volume_attached
