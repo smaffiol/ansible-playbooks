@@ -1,0 +1,9 @@
+---
+- name: Download linux-rootfs-resize
+  command: git clone https://github.com/flegmatik/linux-rootfs-resize.git
+  register: archive
+
+- name: Deploy linux-rootfs-resize
+  sudo: yes
+  command: chdir=linux-rootfs-resize ./install
+  when: archive.changed

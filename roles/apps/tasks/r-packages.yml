@@ -1,0 +1,22 @@
+---
+- name: Verify base R installation (Debian/Ubuntu)
+  sudo: yes
+  apt: name={{ item }} state=present update-cache=yes
+  when: "ansible_os_family == 'Debian'"
+  with_items:
+    - r-base
+    - r-cran-rcpp
+
+- name: Verify base R installation (RedHat/CentOS)
+  yum: name=R state=latest
+  sudo: yes
+  when: "ansible_os_family == 'RedHat'"
+
+- name: r - packages
+  sudo: yes
+  # command: /usr/bin/Rscript --slave --no-save --no-restore-history -e "install.packages(pkgs='{{ item }}', repos=c('http://stat.ethz.ch/CRAN/'))"
+  command: >
+    Rscript --slave --no-save --no-restore-history -e "if (! ('{{ package }}' %in% installed.packages()[,'Package'])) { install.packages(pkgs='{{ package }}', repos=c('{{ repo }}')); print('Added'); } else { print('Already installed'); }"
+  register: r_package_installed
+  failed_when: "r_package_installed.rc != 0 or 'had non-zero exit status' in r_package_installed.stderr"
+  changed_when: "'Added' in r_package_installed.stdout"

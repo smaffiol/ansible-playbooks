@@ -1,0 +1,5 @@
+- name: Collecting facts
+  hosts: all
+  gather_facts: yes
+
+- include: matlab.yml

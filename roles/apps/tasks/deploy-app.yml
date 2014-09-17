@@ -1,0 +1,53 @@
+---
+- name: Check whether {{ name }} has been already installed
+  stat: path="{{ install_dir }}/{{ name }}"
+  register: is_app_installed
+
+- name: prepare destination folder in {{ install_dir }} 
+  command: mkdir -p {{ install_dir }}/{{ name }}
+  when: is_app_installed.stat.exists == false
+
+- name: Check whether archive has been previosuly opened
+  stat: path="{{ download_dir }}/{{ name }}"
+  register: opened_archive 
+  when: is_app_installed.stat.exists == false
+
+- name: Check whether archive has been previosuly downloaded
+  stat: path="{{ download_dir }}/{{ package_name }}"
+  register: downloaded_archive 
+  when: is_app_installed.stat.exists == false and opened_archive.stat.exists == false
+
+- name: Download archive
+  get_url: url={{ url }} dest={{ download_dir }}
+  when: is_app_installed.stat.exists == false and opened_archive.stat.exists == false and downloaded_archive.stat.exists == false
+  register: archive
+
+# - name: open archive
+#   command: tar xfz {{ download_dir }}/{{ package_name }} -C {{ download_dir }}
+#   when: is_app_installed.stat.exists == false and opened_archive.stat.exists == false and downloaded_archive.stat.exists == true or archive.changed == true
+#   register: archive_open
+
+# - name: compile
+#   command: chdir={{ download_dir }}/{{ name }} {{ item }}
+#   with_items:
+#     - ./configure --prefix={{ install_dir }}/{{ name }}
+#     - make
+#     - make install
+#   when: is_app_installed.stat.exists == false and "{{ compile }}"
+
+
+# - name: Download {{ name }}
+#   vars:
+#     - download-dir: /var/tmp
+#     - install-dir: /apps
+#     - destination_dir: {{ install-dir }}
+#   command: 'chdir={{ download-dir }} {{ item }}'
+#   with items:
+#     - wget {{ application-url }}
+#     - tar xfz {{ application-package-name }} -C {{ destination_dir }}
+#   command: 'chdir={{ download-dir }}/{{ application-name }} {{ item }}'  
+#   with items:
+#     - ./configure --prefix={{ install-dir }}/{{ name }}
+#     - make
+#     - make install
+#   when: compile_from_source == true

@@ -1,0 +1,23 @@
+---
+- name: Install OpenJDK (Ubuntu/Debian)
+  apt: name={{ item }} state=present update-cache=yes
+  sudo: yes
+  when: "ansible_os_family == 'Debian'" 
+  with_items:
+    - unzip
+    - openjdk-7-jre
+    - libpython-stdlib
+
+- name: Download CoreNLP 2014-06-16 source
+  get_url: url='http://nlp.stanford.edu/software/stanford-corenlp-full-2014-06-16.zip' dest={{ download_dir }}
+  register: archived
+
+- name: Open CoreNLP 2014-06-16 archive
+  command: unzip {{ download_dir }}/stanford-corenlp-full-2014-06-16.zip
+
+- name: Clean-up CoreNLP 2014-06-16 package
+  file: path={{ download_dir }}/stanford-corenlp-full-2014-06-16.zip state=absent
+
+- name: Set CORENLP variable
+  lineinfile: "dest=/etc/environment state=present line='CORENLP=/home/gc3-user/stanford-corenlp-full-2014-06-16/'"
+  sudo: yes

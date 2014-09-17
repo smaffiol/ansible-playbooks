@@ -1,0 +1,71 @@
+---
+# Install igraph C++ library
+- name: Install igraph C++ dependencies (Ubuntu/Debian)
+  apt: name={{ item }} state=present update-cache=yes
+  sudo: yes
+  with_items:
+    - build-essential
+    - libxml2-dev
+  when: "ansible_os_family == 'Debian' and {{ install_cpp }}" 
+
+- name: Download igraph C++ archive
+  get_url: url='http://igraph.org/nightly/get/c/igraph-{{ version }}.tar.gz' dest={{ download_dir }}
+  register: cpp-archived
+  when: "{{ install_cpp }}"
+
+- name: Open igraph C++ archive
+  command: tar xfz {{ download_dir }}/igraph-{{ version }}.tar.gz -C {{ download_dir }}
+  when: "{{ install_cpp }}"
+  register: archive_open
+
+- name: Install igraph C++
+  command: chdir={{ download_dir }}/igraph-{{ version }} {{ item }}
+  with_items:
+    - ./configure
+    - make
+    - make check
+    - make install
+  sudo: yes
+  when: "{{ install_cpp }}"
+
+- name: Clean-up igraph C++ source folder
+  file: path={{ download_dir }}/igraph-{{ version }} state=absent
+  sudo: yes
+  when: "{{ install_cpp }}"
+
+- name: Clean-up igraph C++ package
+  file: path={{ download_dir }}/igraph-{{ version }}.tar.gz state=absent
+  sudo: yes
+  when: "{{ install_cpp }}"
+
+# Install python-igraph using pip
+
+- name: Install system packages from repo (Ubuntu/Debian)
+  apt: name={{ item }} state=present update-cache=yes
+  sudo: yes
+  with_items: 
+    - python-pip
+    - python-dev
+  when: "ansible_os_family == 'Debian' and {{ install_python }}" 
+
+- name: Install python-igraph from pip (Ubuntu/Debian)
+  command: pip install python-igraph --upgrade
+  sudo: yes
+  when: "ansible_os_family == 'Debian' and {{ install_python }}" 
+
+# Install igraph R
+
+- name: Download igraph R archive
+  get_url: url='http://igraph.org/nightly/get/r/igraph_{{ version }}.tar.gz' dest={{ download_dir }}
+  register: archived
+  when: "{{ install_R }}"
+
+- name: Install igraph R package
+  sudo: yes
+  command: R CMD INSTALL {{ download_dir }}/igraph_{{ version }}.tar.gz
+  when: "archived.changed and {{ install_R }}"
+
+- name: Clean-up igraph R package
+  file: path={{ download_dir }}/igraph_{{ version }}.tar.gz state=absent
+  when: "{{ install_R }}"
+

@@ -1,0 +1,128 @@
+---
+- name: UniSpital playbook
+  hosts: usz
+  vars:
+    # General
+    apps: '/apps'
+    download_dir: '/var/tmp'
+    install_dir: '{{ apps }}'
+
+    # samtools
+    samtools_version: '0.1.19'
+
+    # epacts
+    epacts_version: '3.2.3'
+
+    # apps: '/apps'
+    # download_dir: '/var/tmp'
+    # epacts-src-dir: '{{ download_dir }}/EPACTS-{{ epacts_version }}'
+    # epacts_install_dir: '{{ apps }}/epacts-{{ epacts_version }}'
+    # install_dir: '{{ apps }}'
+    # applications:
+    #   - name: 'EPACTS-3.2.3'
+    #     package_name: '{{ name }}.tar.gz'
+    #     url: 'http://www.sph.umich.edu/csg/kang/epacts/download/{{ package_name }}'
+    #     compile: true
+  gather_facts: true
+  tasks:
+    - name: install dependencies (Ubuntu/Debian)
+      apt: name={{ item }} state=present 
+      sudo: yes
+      with_items: 
+        - python-pip
+        - r-base
+        - gnuplot
+      when: "ansible_os_family == 'Debian'"
+
+    - name: install dependencies (CentOS)
+      yum: name={{ item }} state=latest
+      sudo: yes
+      with_items:
+        - yum-utils
+        - python-pip
+        - R
+        - gnuplot
+        - ncurses-devel 
+        - ncurses
+        - parted
+        - cloud-utils-growpart
+        - git
+      when: "ansible_os_family == 'RedHat'"
+
+    - name: Install EPACTS {{ epacts_version }}
+      include: apps/tasks/epacts.yml version={{ epacts_version }} download_dir={{ download_dir }} install_dir={{ install_dir }}
+
+    - name: Install samtools
+      include: apps/tasks/samtools.yml version={{ samtools_version }} download_dir={{ download_dir }} install_dir={{ install_dir }}
+
+      # include: common/tasks/deploy-app.yml name='samtools-0.1.19' url='http://downloads.sourceforge.net/project/samtools/samtools/0.1.19/samtools-0.1.19.tar.bz2?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fsamtools%2Ffiles%2Fsamtools%2F0.1.19%2F&ts=1404687218&use_mirror=cznic' compile='false' package_name='{{ name }}.tar.bz'
+
+    - name: Set environmental variables
+      sudo: yes
+      command: echo 'export PATH=apps/perl-5.20.0/bin:/apps/python-2.7.7rc1/bin:/apps/epacts-3.2.3/bin:/apps/novocraft-3.01.02/bin:/apps/snptest_v2.4.1/bin:/apps/bedtools-2.17.0/bin:/usr/java/jdk1.7.0_60/bin:/apps/FastQC/:/apps/eigensoft-4.2/bin:/apps/impute-2.3.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/apps/samtools-0.1.19/misc/' >> /etc/environment
+
+
+# nfsserver=${groups.condor_master[0]} nfspath=/home nfsmount=/home
+
+
+
+# ---
+# - hosts: usz
+#   vars:
+#     epacts_version: '3.2.3'
+#     apps: '/apps'
+#     download_dir: '/var/tmp'
+#     epacts_src_dir: '{{ download_dir }}/EPACTS-{{ epacts_version }}'
+#     epacts_install_dir: '{{ apps }}/epacts-{{ epacts_version }}'
+#   gather_facts: true
+
+#   tasks:
+#     - name: install dependencies (Ubuntu)
+#       apt: name={{ item }} state=present 
+#       with_items: 
+#         - python-pip
+#         - r-base
+#         - gnuplot
+#         - groff
+#       when: "ansible_os_family == 'Ubuntu'"
+
+#     - name: install dependencies (CentOS)
+#       yum: name={{ item }} state=latest
+#       with_items:
+#         - yum install yum-utils
+#         - python-pip
+#         - R
+#         - gnuplot
+#         - groff
+#       when: "ansible_os_family == 'RedHat'"
+
+#     - name: Check EPACTS {{ epacts_version }} previous installation
+#       stat: path={{ epacts_install_dir }}/bin/epacts
+#       register: is_epacts_installed
+
+#     - name: prepare destination folder
+#       command: '{{ item }}'
+#       with_items:
+#         - sudo mkdir -p {{ epacts_install_dir }}
+#         - sudo chown -R gc3-user:gc3-user {{ epacts_install_dir }} 
+#       when: is_epacts_installed.stat.exists == false
+
+#     - name: Check EPACTS {{ epacts_version }} src already downloaded
+#       stat: path={{ epacts_src_dir }}
+#       register: is_epacts_src_downloaded
+#       when: is_epacts_installed.stat.exists == false
+
+#     - name: get EPACTS {{ epacts_version }}
+#       command: '{{ item }}'
+#       with_items:
+#         - wget http://www.sph.umich.edu/csg/kang/epacts/download/EPACTS-{{ epacts_version }}.tar.gz -O {{ download_dir }}/EPACTS-{{ epacts_version }}.tar.gz
+#         - tar xfz {{ download_dir }}/EPACTS-3.2.3.tar.gz -C {{ download_dir }}
+#       when: is_epacts_src_downloaded.stat.exists == false
+
+#     - name: Build EPACTS {{ epacts_version }}
+#       command: 'chdir={{ epacts_src_dir }} {{ item }}'
+#       with_items:
+#       - ./configure --prefix={{ epacts_install_dir }}
+#       - make
+#       - make install
+#       when: is_epacts_installed.stat.exists == false

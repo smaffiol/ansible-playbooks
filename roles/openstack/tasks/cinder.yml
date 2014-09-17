@@ -1,0 +1,12 @@
+---
+- name: Check Cinder volume state
+  local_action: command nova volume-show {{ volume }}
+  register: volume_state
+
+- name: Attach Cinder volume
+  local_action: command nova volume-attach {{ server }} {{ volume }} {{ device }}
+  when: state == 'attached' and volume_state.stdout.find('available') != -1
+
+- name: Detach Cinder volume
+  local_action: command nova volume-detach {{ server }} {{ volume }}
+  when: state == 'detached' and volume_state.stdout.find('in-use') != -1

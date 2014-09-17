@@ -1,0 +1,58 @@
+---
+- name: Prepare node for Matlab installation
+  hosts: matlab
+  vars:
+    download_dir: '/var/tmp'
+    matlab_version: 'R2014a'
+    matlab_install_dir: '/usr/local'
+    matlab_mcr_archive_name: 'MCR_{{ matlab_version }}_glnxa64_installer.zip'
+    http_repo: 'http://www.mathworks.co.uk/supportfiles/downloads/{{ matlab_version }}/deployment_files/{{ matlab_version }}/installers/glnxa64/{{ matlab_mcr_archive_name }}'
+  tasks:
+    - name: Install dependencies (Ubuntu/Debian)
+      apt: name={{ item }} state=present update_cache=yes
+      sudo: yes
+      with_items: 
+        - openjdk-7-jre-headless
+        - libxt6 
+        - libxtst6 
+        - libxmu6
+        - libxi6
+        - unzip
+      when: "ansible_os_family == 'Debian'"
+
+    - name: Check whether MCR archive is present
+      stat: path={{download_dir }}/{{ matlab_mcr_archive_name }}
+      register: available_archive
+
+    - name: Download Matlab ISO image
+      get_url: url={{ http_repo }} dest={{ download_dir }}/{{ matlab_mcr_archive_name }}
+      register: archive
+      when: available_archive.stat.exists == false
+
+    - name: Create destination folder
+      action: file path={{ download_dir }}/MCR_{{ matlab_version }} state=directory owner={{ ansible_ssh_user }}
+
+    - name: Open archive
+      command: unzip -n -u {{ download_dir }}/{{ matlab_mcr_archive_name }} -d {{ download_dir }}/MCR_{{ matlab_version }}
+
+    - file: path={{ download_dir }}/MCR_{{ matlab_version }}/installer_input.txt state=touch mode=0644
+
+    - name: customize activate file
+      lineinfile: dest={{ item.dest }} regexp={{ item.regexp }} line={{ item.line }}
+      with_items:
+        - { dest: '{{ download_dir }}/MCR_{{ matlab_version }}/installer_input.txt', regexp: '^"# mode"', line: 'mode=silent' }
+        - { dest: '{{ download_dir }}/MCR_{{ matlab_version }}/installer_input.txt', regexp: '^"# agreeToLicense"', line: 'agreeToLicense=yes' }
+
+    - name: Run Matlab MCR installer
+      command: chdir={{ download_dir }}/MCR_{{ matlab_version }} ./install -inputFile {{ download_dir }}/MCR_{{ matlab_version }}/installer_input.txt
+      register: matlab_mcr_installed
+      sudo: yes
+
+    - name: Cleanup installation files
+      file: path={{ item }} state=absent
+      with_items:
+        - "{{ download_dir }}/{{ matlab_mcr_archive_name }}"
+        - "{{ download_dir }}/MCR_{{ matlab_version }}"
+        - "/tmp/mathworks_root.log"
+      when: matlab_mcr_installed.stdout.find("End - Successful") != -1
+      sudo: yes

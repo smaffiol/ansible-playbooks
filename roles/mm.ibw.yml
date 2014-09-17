@@ -1,0 +1,14 @@
+---
+- name: mm.ibw playbook
+  hosts: mm.ibw
+  vars:
+    - download_dir: '/var/tmp'
+    - version: '0.7.1'
+    - install_dir: '/apps'
+  gather_facts: true
+  tasks:
+    - name: Install R libraries
+      include: apps/tasks/r-packages.yml repo='http://stat.ethz.ch/CRAN/' package=data.table
+    - name: install igraph
+      include: apps/tasks/igraph.yml install_python='true' install_R='true' install_cpp='true'
+      
