@@ -18,7 +18,10 @@
 mm.ibw.ubuntu ansible_ssh_host=130.60.24.236 ansible_ssh_port=22 ansible_ssh_user=gc3-user host_key_checking=False hostfile=/dev/null
 
 [matlab]
-matlab ansible_ssh_host=130.60.24.52 ansible_ssh_port=22 ansible_ssh_user=gc3-user host_key_checking=False hostfile=/dev/null
+matlab ansible_ssh_host=130.60.24.47 ansible_ssh_port=22 ansible_ssh_user=gc3-user host_key_checking=False hostfile=/dev/null
 
 [cinder]
-cinder ansible_ssh_host=130.60.24.52 ansible_ssh_port=22 ansible_ssh_user=gc3-user host_key_checking=False hostfile=/dev/null
+cinder ansible_ssh_host=130.60.24.62 ansible_ssh_port=22 ansible_ssh_user=gc3-user host_key_checking=False hostfile=/dev/null
+
+[matlab-mcr]
+matlab ansible_ssh_host=130.60.24.76 ansible_ssh_port=22 ansible_ssh_user=gc3-user host_key_checking=False hostfile=/dev/null
