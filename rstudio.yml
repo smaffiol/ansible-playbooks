@@ -1,0 +1,44 @@
+---
+# Installation instructions from: 
+# http://www.rstudio.com/products/rstudio/download-server/
+- name: Install Rstudio
+  hosts: rstudio
+  vars:
+    download_dir: '/var/tmp'
+    version: 
+  tasks:
+    - name: Install dependecies
+      apt: name={{ item }} state=present update-cache=yes
+      sudo: yes
+      with_items:
+        - r-base
+        - gdebi-core
+        - libapparmor1
+      when: "ansible_os_family == 'Debian'"
+
+    - name: Determine RStudio 'current version'
+      local_action: command curl http://download2.rstudio.org/current.ver
+      register: rstudio_version
+      
+
+    - name: Download Rstudio Server
+      get_url: url='http://download2.rstudio.org/rstudio-server-{{ rstudio_version.stdout }}-amd64.deb' dest={{ download_dir }}
+
+    - name: Install RStudio Server package
+      command: chdir={{ download_dir }} gdebi -n rstudio-server-{{ rstudio_version.stdout }}-amd64.deb
+      sudo: yes
+
+    - name: Customize RStudio configuration 
+      lineinfile: dest={{ item.dest }} line={{ item.line }}
+      with_items:
+        - { dest: '/etc/rstudio/rsession.conf', line: 'r-cran-repos=http://stat.ethz.ch/CRAN/' }
+      sudo: yes
+
+    - name: Restart RStudio service
+      service: name=rstudio-server state=started
+      sudo: yes
+
+    - name: Clean-up
+      file: path={{ download_dir }}/rstudio-server-{{ rstudio_version.stdout }}-amd64.deb state=absent
+      sudo: yes
+
