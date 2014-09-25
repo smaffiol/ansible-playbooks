@@ -5,7 +5,6 @@
   hosts: rstudio
   vars:
     download_dir: '/var/tmp'
-    version: 
   tasks:
     - name: Install dependecies
       apt: name={{ item }} state=present update-cache=yes
