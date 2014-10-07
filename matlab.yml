@@ -7,10 +7,10 @@
     volume_device: '/dev/vdb'
     download_dir: '/var/tmp'
     iso_mount_point: '/mnt/matlab/'
-    volume_mount_point: '/mnt/iso/'
+    volume_mount_point: '/mnt/'
     matlab_version: 'R2014a'
     matlab_FIK: ''
-    matlab_license_server: ''
+    matlab_license_server: 'idlicense1.uzh.ch 0060975bfa00 1712'
     matlab_install_dir: '/usr/local'
     http_repo: ''
     download_iso: false
@@ -26,7 +26,7 @@
         - libxi6
       when: "ansible_os_family == 'Debian'"
 
-    - name: Attach Volume
+    - name: Attach Matlab ISO Volume
       include: roles/openstack/tasks/cinder.yml server={{ vm_id }} volume={{ volume_id }} device={{ volume_device }} state=attached
       register: volume_attached
       when: not download_iso
@@ -41,19 +41,21 @@
       sudo: yes
       when: not download_iso
 
-    - name: Mount ISO image
-      sudo: yes
-      mount: fstype=iso9660 name={{ iso_mount_point }} state=mounted opts=loop src={{ volume_mount_point }}/iso/{{ matlab_version }}_UNIX.iso
-      register: iso_mounted
-
     - name: Check whether ISO image present
-      stat: path="{{ volume_mount_point }}/iso/{{ matlab_version }}_UNIX.iso"
+      stat: path="{{ volume_mount_point }}/{{ matlab_version }}_UNIX.iso"
       register: available_archive
+      sudo: yes
 
     - name: Download Matlab ISO image
-      get_url: url={{ http_repo }} dest={{ volume_mount_point }}/iso
+      get_url: url={{ http_repo }} dest={{ volume_mount_point }}
       register: archive
+      sudo: yes
       when: download_iso and available_archive.stat.exists == false
+
+    - name: Mount ISO image
+      sudo: yes
+      mount: fstype=iso9660 name={{ iso_mount_point }} state=mounted opts=loop src={{ volume_mount_point }}/{{ matlab_version }}_UNIX.iso
+      register: iso_mounted
 
     # - name: Install Matlab
     #   include: matlab matlab_source={{ iso_mount_point }} 
@@ -67,13 +69,13 @@
     - name: Prepare installer_input.txt
       command: cp {{ iso_mount_point }}/installer_input.txt /tmp/installer_input.txt
 
+    - file: path=/tmp/installer_input.txt state=touch mode=0644
+
     - name: Create license file
       command: touch /tmp/license.lic
 
     - name: Set access permission
       file: path=/tmp/license.lic mode=0644
-
-    - file: path=/tmp/installer_input.txt state=touch mode=0644
 
     - name: customize activate file
       lineinfile: dest={{ item.dest }} regexp={{ item.regexp }} line={{ item.line }}
@@ -100,10 +102,12 @@
     - name: Create simlink for matlab
       file: src=/usr/local/MATLAB/{{ matlab_version }}/bin/matlab dest=/usr/local/bin/matlab state=link
       sudo: yes
+      when: matlab_installed.stdout.find("End - Successful") != -1
 
     - name: Create simlink for mcc
       file: src=/usr/local/MATLAB/{{ matlab_version }}/bin/mcc dest=/usr/local/bin/mcc state=link
       sudo: yes
+      when: matlab_installed.stdout.find("End - Successful") != -1
 
     - name: Cleanup installation files
       file: path={{ item}} state=absent
@@ -111,27 +115,31 @@
         - /tmp/installer_input.txt
         - /tmp/activate.ini
         - /tmp/license.lic
-
-    - name: Cleanup Matlab installation logs
-      file: path=/tmp/mathworks_root.log state=absent
-      when: matlab_installed.stdout.find("End - Successful") != -1
+        - /tmp/mathworks_root.log
       sudo: yes
+      when: matlab_installed.stdout.find("End - Successful") != -1
 
     # Clean-up (at the end of the Matlab installation)
     - name: Umount Matlab ISO and Matlab Volume
       sudo: yes
       mount: name={{ item.name }} state={{ item.state }} opts={{ item.opts }} src={{ item.src }} fstype={{ item.fstype }}
       with_items:
-        - { name: '{{ iso_mount_point }}', state: 'unmounted', opts: 'loop', src: '{{ volume_mount_point }}/iso/{{ matlab_version }}_UNIX.iso', fstype: 'iso9660' }
-        - { name: '{{ iso_mount_point }}', state: 'absent', opts: 'loop', src: '{{ volume_mount_point }}/iso/{{ matlab_version }}_UNIX.iso', fstype: 'iso9660' }
+        - { name: '{{ iso_mount_point }}', state: 'unmounted', opts: 'loop', src: '{{ volume_mount_point }}/{{ matlab_version }}_UNIX.iso', fstype: 'iso9660' }
+        - { name: '{{ iso_mount_point }}', state: 'absent', opts: 'loop', src: '{{ volume_mount_point }}/{{ matlab_version }}_UNIX.iso', fstype: 'iso9660' }
+
+    - name: Umount Matlab Volume
+      sudo: yes
+      mount: name={{ item.name }} state={{ item.state }} opts={{ item.opts }} src={{ item.src }} fstype={{ item.fstype }}
+      with_items:
         - { name: '{{ volume_mount_point }}', state: 'unmounted', src: '{{ volume_device }}', fstype: 'auto', opts: ''}
         - { name: '{{ volume_mount_point }}', state: 'absent', src: '{{ volume_device }}', fstype: 'auto', opts: ''}
+      when: not download_iso
 
     - name: Remove Downloaded ISO image
-      file: path={{ volume_mount_point }}/iso/{{ matlab_version }}_UNIX.iso state=absent
+      file: path={{ volume_mount_point }}/{{ matlab_version }}_UNIX.iso state=absent
       when: download_iso
 
     - name: Detach Volume
-      include: roles/openstack/tasks/cinder.yml vm_id={{ vm_id }} volume_id={{ volume_id }} volume_device={{ volume_device }} state=detached
+      include: roles/openstack/tasks/cinder.yml server={{ vm_id }} volume={{ volume_id }} device={{ volume_device }} state=detached
       register: volume_attached
       when: not download_iso

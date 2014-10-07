@@ -1,6 +1,6 @@
 ---
 - name: Prepare node for Matlab installation
-  hosts: matlab
+  hosts: matlab-mcr
   vars:
     download_dir: '/var/tmp'
     matlab_version: 'R2014a'
@@ -26,18 +26,17 @@
 
     - name: Download Matlab ISO image
       get_url: url={{ http_repo }} dest={{ download_dir }}/{{ matlab_mcr_archive_name }}
-      register: archive
       when: available_archive.stat.exists == false
 
-    - name: Create destination folder
-      action: file path={{ download_dir }}/MCR_{{ matlab_version }} state=directory owner={{ ansible_ssh_user }}
+    # - name: Create destination folder
+    #   action: file path={{ download_dir }}/MCR_{{ matlab_version }} state=directory owner={{ ansible_ssh_user }}
 
-    - name: Open archive
+    - name: Opening MCR archive
       command: unzip -n -u {{ download_dir }}/{{ matlab_mcr_archive_name }} -d {{ download_dir }}/MCR_{{ matlab_version }}
 
     - file: path={{ download_dir }}/MCR_{{ matlab_version }}/installer_input.txt state=touch mode=0644
 
-    - name: customize activate file
+    - name: Customizing MCR installer configuration file
       lineinfile: dest={{ item.dest }} regexp={{ item.regexp }} line={{ item.line }}
       with_items:
         - { dest: '{{ download_dir }}/MCR_{{ matlab_version }}/installer_input.txt', regexp: '^"# mode"', line: 'mode=silent' }
