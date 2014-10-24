@@ -1,10 +1,12 @@
 ---
 # Installation instructions from: 
 # http://www.rstudio.com/products/rstudio/download-server/
+
 - name: Install Rstudio
   hosts: rstudio
   vars:
     download_dir: '/var/tmp'
+    version: 'current'
   tasks:
     - name: Install dependecies
       apt: name={{ item }} state=present update-cache=yes
@@ -18,7 +20,10 @@
     - name: Determine RStudio 'current version'
       local_action: command curl http://download2.rstudio.org/current.ver
       register: rstudio_version
-      
+      when: {{ version }} == 'current'
+
+    ## How to assign variable values explicitly ?
+    ## e.g. {{ version }} = {{ rsutdio_version.stdout }}
 
     - name: Download Rstudio Server
       get_url: url='http://download2.rstudio.org/rstudio-server-{{ rstudio_version.stdout }}-amd64.deb' dest={{ download_dir }}
