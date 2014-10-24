@@ -7,13 +7,14 @@
     volume_device: '/dev/vdb'
     download_dir: '/var/tmp'
     iso_mount_point: '/mnt/matlab/'
-    volume_mount_point: '/mnt/'
+    volume_mount_point: '/mnt/volume'
     matlab_version: 'R2014a'
     matlab_FIK: ''
     matlab_license_server: 'idlicense1.uzh.ch 0060975bfa00 1712'
     matlab_install_dir: '/usr/local'
     http_repo: ''
     download_iso: false
+    run_installer: false
   tasks:
     - name: Install dependencies (Ubuntu/Debian)
       apt: name={{ item }} state=present update_cache=yes
@@ -24,6 +25,7 @@
         - libxtst6 
         - libxmu6
         - libxi6
+        - libgl1
       when: "ansible_os_family == 'Debian'"
 
     - name: Attach Matlab ISO Volume
@@ -42,20 +44,33 @@
       when: not download_iso
 
     - name: Check whether ISO image present
-      stat: path="{{ volume_mount_point }}/{{ matlab_version }}_UNIX.iso"
+      stat: path="{{ volume_mount_point }}/{{ matlab_version }}/{{ matlab_version }}_glnxa64.iso"
       register: available_archive
       sudo: yes
+      when: not run_installer
+
+    - name: Check Installer
+      stat: path="{{ volume_mount_point }}/{{ matlab_version }}/matlab_{{ matlab_version }}_glnxa64.zip"
+      register: available_installer
+      sudo: yes
+      when: run_installer
 
     - name: Download Matlab ISO image
       get_url: url={{ http_repo }} dest={{ volume_mount_point }}
       register: archive
       sudo: yes
-      when: download_iso and available_archive.stat.exists == false
+      when: download_iso and available_archive.stat.exists == false and not run_installer
 
     - name: Mount ISO image
       sudo: yes
-      mount: fstype=iso9660 name={{ iso_mount_point }} state=mounted opts=loop src={{ volume_mount_point }}/{{ matlab_version }}_UNIX.iso
+      mount: fstype=iso9660 name={{ iso_mount_point }} state=mounted opts=loop src={{ volume_mount_point }}/{{ matlab_version }}/{{ matlab_version }}_glnxa64.iso
       register: iso_mounted
+      when: not run_installer
+
+    - name: Unpack Installer archive\
+      command: unzip -n -u {{ volume_mount_point }}/{{ matlab_version }}/matlab_{{ matlab_version }}_glnxa64.zip -d {{ iso_mount_point }}
+      when: run_installer and available_installer.stat.exists == true
+      sudo: yes
 
     # - name: Install Matlab
     #   include: matlab matlab_source={{ iso_mount_point }} 
