@@ -55,8 +55,13 @@
       sudo: yes
       when: run_installer
 
+    - name: Create ISO mount point
+      command: mkdir -p {{ volume_mount_point }}/{{ matlab_version }}/
+      when: download_iso and available_archive.stat.exists == false and not run_installer
+      sudo: yes
+      
     - name: Download Matlab ISO image
-      get_url: url={{ http_repo }} dest={{ volume_mount_point }}
+      get_url: url={{ http_repo }} dest={{ volume_mount_point }}/{{ matlab_version }}/
       register: archive
       sudo: yes
       when: download_iso and available_archive.stat.exists == false and not run_installer
@@ -151,10 +156,11 @@
       when: not download_iso
 
     - name: Remove Downloaded ISO image
-      file: path={{ volume_mount_point }}/{{ matlab_version }}_UNIX.iso state=absent
+      file: path={{ volume_mount_point }}/{{ matlab_version }}/{{ matlab_version }}_glnxa64.iso state=absent
       when: download_iso
+      sudo: yes
 
     - name: Detach Volume
       include: roles/openstack/tasks/cinder.yml server={{ vm_id }} volume={{ volume_id }} device={{ volume_device }} state=detached
-      register: volume_attached
       when: not download_iso
+
