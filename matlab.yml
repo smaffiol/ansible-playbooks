@@ -10,7 +10,7 @@
     volume_mount_point: '/mnt/volume'
     matlab_version: 'R2014a'
     matlab_FIK: ''
-    matlab_license_server: 'idlicense1.uzh.ch 0060975bfa00 1712'
+    matlab_license_server: ''
     matlab_install_dir: '/usr/local'
     http_repo: ''
     download_iso: false
