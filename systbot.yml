@@ -15,6 +15,9 @@
     structure_version: '2.3.4'
     structure_url: 'http://pritchardlab.stanford.edu/structure_software/release_versions/v{{ structure_version }}/structure_kernel_source.tar.gz'
     structure_install_dir: '{{ application_dir }}/structure-{{ structure_version }}'
+    samtools_version: '1.1'
+    samtools_url: 'http://downloads.sourceforge.net/project/samtools/samtools/{{ samtools_version }}/samtools-{{ samtools_version }}.tar.bz2'
+    samtools_install_dir: '{{ application_dir }}/samtools-{{ samtools_version }}'
   tasks:
     # - name: BayeScan {{ bayescan_version }}
     #   include: roles/apps/tasks/bayescan.yml
@@ -25,5 +28,8 @@
     # - name: Stacks {{ stacks_version }}
     #   include: roles/apps/tasks/stacks.yml
 
-    - name: Structure {{ structure_version }}
-      include: roles/apps/tasks/structure.yml
+    # - name: Structure {{ structure_version }}
+    #   include: roles/apps/tasks/structure.yml
+
+    - name: Samtools {{ samtools_version }}
+      include: roles/apps/tasks/samtools.yml
