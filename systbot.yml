@@ -1,0 +1,12 @@
+---
+- name: Install SystBot image
+  hosts: systbot
+  vars:
+    application_dir: '/apps/'
+    download_dir: '/var/tmp'
+    bayescan_version: '2.1'
+    bayescan_url: 'http://cmpg.unibe.ch/software/BayeScan/files/BayeScan2.1.zip'
+    bayescan_install_dir: '{{ application_dir }}/bayescan-{{ bayescan_version }}'
+  tasks:
+    - name: Install BayeScan {{ bayescan_version }}
+      include: roles/apps/tasks/bayescan.yml
