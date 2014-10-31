@@ -1,0 +1,18 @@
+---
+# Installation instructions from: 
+# http://www.rstudio.com/products/rstudio/download-server/
+- name: Install Rstudio Server dependencies (Ubuntu/Debian)
+  apt: name={{ item }} state=present update-cache=yes
+  sudo: yes
+  with_items:
+    - r-base
+    - gdebi-core
+    - libapparmor1
+  when: "ansible_os_family == 'Debian'"
+
+- name: Download Rstudio Server
+  get_url: url='http://download2.rstudio.org/rstudio-server-0.98.1062-amd64.deb' dest={{ download_dir }}
+
+- name: Install RStudio Server package
+  command: chdir={{ download_dir }} gdebi rstudio-server-0.98.1062-amd64.deb
+  sudo: yes
