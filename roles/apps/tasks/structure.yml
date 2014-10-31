@@ -1,0 +1,29 @@
+---
+- name: Download Structure {{ structure_version }} from repository
+  get_url: url={{ structure_url }} dest={{ download_dir }}
+  register: archive
+  sudo: yes
+
+- name: Open archive
+  command: tar xfz {{ download_dir }}/structure_kernel_source.tar.gz -C {{ download_dir }}
+
+- name: Compile structure
+  command: chdir={{ download_dir }}/structure_kernel_src {{ item }}
+  register: compiled
+  with_items:
+    - make
+  sudo: yes
+
+- name: Create Structure install dir
+  file: path={{ structure_install_dir }}/bin state=directory owner={{ ansible_ssh_user }}
+  sudo: yes
+
+- name: Copy binary in install dir
+  command: cp {{ download_dir }}/structure_kernel_src/structure {{ structure_install_dir }}/bin
+
+- name: Cleanup
+  file: path={{ download_dir }}/{{ item }} state=absent
+  sudo: yes
+  with_items:
+    - structure_kernel_source.tar.gz
+    - structure_kernel_source

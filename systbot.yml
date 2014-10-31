@@ -5,19 +5,25 @@
     application_dir: '/apps'
     download_dir: '/var/tmp'
     bayescan_version: '2.1'
-    bayescan_url: 'http://cmpg.unibe.ch/software/BayeScan/files/BayeScan2.1.zip'
+    bayescan_url: 'http://cmpg.unibe.ch/software/BayeScan/files/BayeScan{{ bayescan_version }}.zip'
     bayescan_install_dir: '{{ application_dir }}/bayescan-{{ bayescan_version }}'
-    pyrad_url: 'https://github.com/dereneaton/pyrad/archive/v.2.16.1.tar.gz'
     pyrad_version: '2.16.1'
-    stacks_url: 'http://creskolab.uoregon.edu/stacks/source/stacks-1.21.tar.gz'
+    pyrad_url: 'https://github.com/dereneaton/pyrad/archive/v.{{ pyrad_version }}.tar.gz'
     stacks_version: '1.21'
+    stacks_url: 'http://creskolab.uoregon.edu/stacks/source/stacks-{{ stacks_version }}.tar.gz'
     stacks_install_dir: '{{ application_dir }}/stacks-{{ stacks_version }}'
+    structure_version: '2.3.4'
+    structure_url: 'http://pritchardlab.stanford.edu/structure_software/release_versions/v{{ structure_version }}/structure_kernel_source.tar.gz'
+    structure_install_dir: '{{ application_dir }}/structure-{{ structure_version }}'
   tasks:
-    - name: BayeScan {{ bayescan_version }}
-      include: roles/apps/tasks/bayescan.yml
+    # - name: BayeScan {{ bayescan_version }}
+    #   include: roles/apps/tasks/bayescan.yml
 
-    - name: pyRAD {{ pyrad_version }}
-      include: roles/apps/tasks/pyrad.yml
+    # - name: pyRAD {{ pyrad_version }}
+    #   include: roles/apps/tasks/pyrad.yml
 
-    - name: Stacks {{ stacks_version }}
-      include: roles/apps/tasks/stacks.yml
+    # - name: Stacks {{ stacks_version }}
+    #   include: roles/apps/tasks/stacks.yml
+
+    - name: Structure {{ structure_version }}
+      include: roles/apps/tasks/structure.yml
