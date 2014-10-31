@@ -7,6 +7,9 @@
     bayescan_version: '2.1'
     bayescan_url: 'http://cmpg.unibe.ch/software/BayeScan/files/BayeScan2.1.zip'
     bayescan_install_dir: '{{ application_dir }}/bayescan-{{ bayescan_version }}'
+    pyrad_version: '2.16.1'
   tasks:
-    - name: Install BayeScan {{ bayescan_version }}
+    - name: BayeScan {{ bayescan_version }}
       include: roles/apps/tasks/bayescan.yml
+    - name: pyRAD {{ pyrad_version }}
+      include: roles/apps/tasks/pyrad.yml

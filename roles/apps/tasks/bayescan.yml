@@ -30,4 +30,10 @@
   with_items:
     - AFLP_data_functions.r
     - plot_R.r
-  
+
+- name: Cleanup
+  file: path={{ download_dir }}/{{ item }} state=absent
+  sudo: yes
+  with_items:
+    - BayeScan{{ bayescan_version }}
+    - BayeScan{{ bayescan_version }}.zip
