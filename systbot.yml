@@ -2,14 +2,22 @@
 - name: Install SystBot image
   hosts: systbot
   vars:
-    application_dir: '/apps/'
+    application_dir: '/apps'
     download_dir: '/var/tmp'
     bayescan_version: '2.1'
     bayescan_url: 'http://cmpg.unibe.ch/software/BayeScan/files/BayeScan2.1.zip'
     bayescan_install_dir: '{{ application_dir }}/bayescan-{{ bayescan_version }}'
+    pyrad_url: 'https://github.com/dereneaton/pyrad/archive/v.2.16.1.tar.gz'
     pyrad_version: '2.16.1'
+    stacks_url: 'http://creskolab.uoregon.edu/stacks/source/stacks-1.21.tar.gz'
+    stacks_version: '1.21'
+    stacks_install_dir: '{{ application_dir }}/stacks-{{ stacks_version }}'
   tasks:
     - name: BayeScan {{ bayescan_version }}
       include: roles/apps/tasks/bayescan.yml
+
     - name: pyRAD {{ pyrad_version }}
       include: roles/apps/tasks/pyrad.yml
+
+    - name: Stacks {{ stacks_version }}
+      include: roles/apps/tasks/stacks.yml

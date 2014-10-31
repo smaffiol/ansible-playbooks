@@ -1,0 +1,24 @@
+---
+- name: Download Stacks {{ stacks_version }} from repository
+  get_url: url={{ stacks_url }} dest={{ download_dir }}
+  register: archive
+  sudo: yes
+
+- name: Open archive
+  command: tar xfz {{ download_dir }}/stacks-{{ stacks_version }}.tar.gz -C {{ download_dir }}
+
+- name: Compile stacks
+  command: chdir={{ download_dir }}/stacks-{{ stacks_version }} {{ item }}
+  register: compiled
+  with_items:
+    - ./configure --prefix={{ stacks_install_dir }}
+    - make
+    - make install
+  sudo: yes
+
+- name: Cleanup
+  file: path={{ download_dir }}/{{ item }} state=absent
+  sudo: yes
+  with_items:
+    - stacks-{{ stacks_version }}.tar.gz
+    - stacks-{{ stacks_version }}
