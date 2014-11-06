@@ -1,0 +1,32 @@
+---
+- name: Download MrBayes {{ mrbayes_version }} from repository
+  get_url: url={{ mrbayes_url }} dest={{ download_dir }}
+  register: archive
+
+- name: Create archive folder
+  file: path={{ download_dir }}/mrbayes-{{ mrbayes_version }} state=directory owner={{ ansible_ssh_user }}
+
+- name: Open archive
+  command: tar xfz {{ download_dir }}/mrbayes-{{ mrbayes_version }}.tar.gz -C {{ download_dir }}/mrbayes-{{ mrbayes_version }}
+
+- name: Compile MrBayes
+  command: chdir={{ download_dir }}/mrbayes-{{ mrbayes_version }}/src {{ item }}
+  register: compiled
+  with_items:
+    - autoconf
+    - ./configure --with-beagle=no
+    - make
+    - make
+
+- name: Create Mrbayes folder
+  file: path={{ mrbayes_install_dir }}/bin state=directory owner={{ ansible_ssh_user }}
+  
+- name: Installing MrBayes binary
+  command: cp {{ download_dir }}/mrbayes-{{ mrbayes_version }}/src/mb {{ mrbayes_install_dir }}/bin
+
+- name: Cleanup
+  file: path={{ download_dir }}/{{ item }} state=absent
+  sudo: yes
+  with_items:
+    - mrbayes-{{ mrbayes_version }}
+    - mrbayes-{{ mrbayes_version }}.tar.gz

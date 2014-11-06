@@ -24,15 +24,36 @@
     bowtie_version: '2.2.4'
     bowtie_url: 'http://downloads.sourceforge.net/project/bowtie-bio/bowtie2/{{ bowtie_version }}/bowtie2-{{ bowtie_version }}-source.zip'
     bowtie_install_dir: '{{ application_dir }}/bowtie-{{ bowtie_version }}'
+    raxml_version: '8.1.1'
+    raxml_url: 'https://github.com/stamatak/standard-RAxML'
+    raxml_install_dir: '{{ application_dir }}/raxml-{{ raxml_version }}'
+    mrbayes_version: '3.2.3'
+    mrbayes_url: 'http://downloads.sourceforge.net/project/mrbayes/mrbayes/{{ mrbayes_version }}/mrbayes-{{ mrbayes_version }}.tar.gz'
+    mrbayes_install_dir: '{{ application_dir }}/mrbayes-{{ mrbayes_version }}'
+
   tasks:
+    - name: Install required dependencies
+      apt: name={{ item }} state=present update_cache=yes
+      sudo: yes
+      with_items: 
+        - build-essential
+        - screen
+        - git
+        - clang
+      when: "ansible_os_family == 'Debian'"
+
+    # - name: create {{ application_dir }} folder
+    #   file: path={{ application_dir }} state=directory owner={{ ansible_ssh_user }}
+    #   sudo: yes
+
     # - name: BayeScan {{ bayescan_version }}
     #   include: roles/apps/tasks/bayescan.yml
 
     # - name: pyRAD {{ pyrad_version }}
     #   include: roles/apps/tasks/pyrad.yml
 
-    # - name: Stacks {{ stacks_version }}
-    #   include: roles/apps/tasks/stacks.yml
+    - name: Stacks {{ stacks_version }}
+      include: roles/apps/tasks/stacks.yml
 
     # - name: Structure {{ structure_version }}
     #   include: roles/apps/tasks/structure.yml
@@ -43,5 +64,11 @@
     # - name: BWA {{ bwa_version }}
     #   include: roles/apps/tasks/bwa.yml
 
-    - name: Bowtie {{ bowtie_version }}
-      include: roles/apps/tasks/bowtie.yml
+    # - name: Bowtie {{ bowtie_version }}
+    #   include: roles/apps/tasks/bowtie.yml
+
+    # - name: RAxML {{ raxml_version }}
+    #   include: roles/apps/tasks/raxml.yml
+
+    # - name: MrBayes {{ mrbayes_version }}
+    #   include: roles/apps/tasks/mrbayes.yml

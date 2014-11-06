@@ -1,0 +1,19 @@
+---
+- name: RAxML download version {{ raxml_version }}
+  git: repo={{ raxml_url }} dest={{ download_dir }}/standard-RAxML
+
+- name: RAxML compile
+  command: chdir={{ download_dir }}/standard-RAxML make -f Makefile.PTHREADS.gcc
+  register: compiled
+
+- name: RAxML create folder
+  file: path={{ raxml_install_dir }}/bin state=directory owner={{ ansible_ssh_user }}
+  
+- name: RAxML installing binary
+  command: cp {{ download_dir }}/standard-RAxML/raxmlHPC-PTHREADS {{ raxml_install_dir }}/bin
+
+- name: RAxML cleanup
+  file: path={{ download_dir }}/{{ item }} state=absent
+  sudo: yes
+  with_items:
+    - standard-RAxML

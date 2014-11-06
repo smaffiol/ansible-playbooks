@@ -1,31 +1,22 @@
 ---
-- name: Install required dependencies
-  apt: name={{ item }} state=present update_cache=yes
-  sudo: yes
-  with_items: 
-    - build-essential
-  when: "ansible_os_family == 'Debian'"
-
-- name: Download BWA {{ bwa_version }} from repository
+- name: BWA download version {{ bwa_version }}
   get_url: url={{ bwa_url }} dest={{ download_dir }}
   register: archive
-  sudo: yes
 
-- name: Open archive
+- name: BWA open archive
   command: tar xfj {{ download_dir }}/bwa-{{ bwa_version }}.tar.bz2 -C {{ download_dir }}
 
-- name: Compile BWA
+- name: BWA compile 
   command: chdir={{ download_dir }}/bwa-{{ bwa_version }} make
   register: compiled
 
-- name: Create Bwa folder
+- name: BWA create folder
   file: path={{ bwa_install_dir }}/bin state=directory owner={{ ansible_ssh_user }}
-  sudo: yes
   
-- name: Installing BWA binary
+- name: BWA installing binary
   command: cp {{ download_dir }}/bwa-{{ bwa_version }}/bwa {{ bwa_install_dir }}/bin
 
-- name: Cleanup
+- name: BWA cleanup
   file: path={{ download_dir }}/{{ item }} state=absent
   sudo: yes
   with_items:

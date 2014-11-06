@@ -1,27 +1,29 @@
 ---
-- name: prepare destination folder in {{ install_dir }} 
-  file: path={{ samtools_install_dir }}/bin state=directory  owner={{ ansible_ssh_user }}
-  sudo: yes
-
-- name: Check whether archive has been previosuly downloaded
+- name: Samtools check whether archive has been previosuly downloaded
   stat: path="{{ download_dir }}/samtools-{{ samtools_version }}.tar.bz2"
   register: downloaded_archive 
 
-- name: Download archive
+- name: Samtools download archive
   get_url: url={{ samtools_url }} dest={{ download_dir }}
   when: downloaded_archive.stat.exists == false
 
-- name: open archive
+- name: Samtools open archive
   command: tar xfj {{ download_dir }}/samtools-{{ samtools_version }}.tar.bz2 -C {{ download_dir }}
 
-- name: Compile and install
+- name: Samtools prepare destination folder in {{ install_dir }} 
+  file: path={{ samtools_install_dir }}/{{ item }} state=directory  owner={{ ansible_ssh_user }}
+  with_items:
+    - bin
+    - misc
+
+- name: Samtools compile and install
   command: chdir={{ download_dir }}/samtools-{{ samtools_version }} {{ item }}
   with_items:
     - make
     - cp samtools {{ samtools_install_dir }}/bin/
     - cp -ap misc/ {{ samtools_install_dir }}
 
-- name: Cleanup
+- name: Samtools cleanup
   file: path={{ download_dir }}/{{ item }} state=absent
   sudo: yes
   with_items:

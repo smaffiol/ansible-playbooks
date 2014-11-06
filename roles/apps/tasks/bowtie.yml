@@ -1,28 +1,19 @@
 ---
-- name: Install required dependencies
-  apt: name={{ item }} state=present update_cache=yes
-  sudo: yes
-  with_items: 
-    - build-essential
-  when: "ansible_os_family == 'Debian'"
-
-- name: Download Bowtie {{ bowtie_version }} from repository
+- name: Bowtie download version {{ bowtie_version }}
   get_url: url={{ bowtie_url }} dest={{ download_dir }}
   register: archive
-  sudo: yes
 
-- name: Open archive
+- name: Bowtie open archive
   command: unzip {{ download_dir }}/bowtie2-{{ bowtie_version }}-source.zip -d {{ download_dir }}
 
-- name: Compile Bowtie
+- name: Bowtie compile
   command: chdir={{ download_dir }}/bowtie2-{{ bowtie_version }} make
   register: compiled
 
-- name: Create Bowtie folder
+- name: Bowtie create install folder
   file: path={{ bowtie_install_dir }}/bin state=directory owner={{ ansible_ssh_user }}
-  sudo: yes
   
-- name: Installing Bowtie binary
+- name: Bowtie installing binary
   command: cp {{ download_dir }}/bowtie2-{{ bowtie_version }}/{{ item }} {{ bowtie_install_dir }}/bin
   with_items:
     - bowtie2  
@@ -35,9 +26,13 @@
     - bowtie2-inspect-l  
     - bowtie2-inspect-s
 
-- name: Cleanup
+- name: Bowtie cleanup
   file: path={{ download_dir }}/{{ item }} state=absent
   sudo: yes
   with_items:
     - bowtie2-{{ bowtie_version }}
     - bowtie2-{{ bowtie_version }}-source.zip
+
+- name: Bowtie adding path to bashrc
+  lineinfile: dest=/home/{{ ansible_ssh_user }}/.bashrc state=present line="export PATH={{ bowtie_install_dir }}/bin:$PATH"
+

@@ -1,0 +1,11 @@
+---
+- name: pyRAD download version {{ pyrad_version }}
+  get_url: url={{ pyrad_url }} dest={{ download_dir }}
+  register: archived
+
+- name: pyRAD open archive
+  command: tar xfz {{ download_dir }}/v.{{ pyrad_version }} -C {{ application_dir }}
+  register: archive_open
+
+- name: pyRAD cleanup archive
+  file: path={{ download_dir }}/v.{{ pyrad_version }} state=absent
