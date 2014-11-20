@@ -5,7 +5,30 @@
     - action: file path=/data state=directory owner={{ ansible_ssh_user }}
     - action: file path=/apps state=directory owner={{ ansible_ssh_user }}
     - action: file path=/data-scratch state=directory owner={{ ansible_ssh_user }}
+    - action: file path=/scratch state=directory owner={{ ansible_ssh_user }}
   sudo: yes
+
+- name: Attach Volumes
+  hosts: usz_data_export
+  include: roles/openstack/tasks/cinder.yml server={{ vm_id }} volume={{ item.volume_id }} device={{ item.volume_device }} state=attached
+  register: volume_attached
+  with_items:
+    - { volume_id: {{ data_volume_id }}, volume_device: '/dev/vdb' }
+    - { volume_id: {{ data_scratch_volume_id }}, volume_device: '/dev/vdc' }
+    - { volume_id: {{ scratch_volume_id }}, volume_device: '/dev/vdd' }
+  
+- name: Wait to make sure Volume visible within VM
+  hosts: usz_data_export
+  pause: seconds=10
+
+- name: Mount Matlab Volume
+  hosts: usz_data_export
+  mount: name={{ item.volume_mount_point }} state=mounted src={{ item.volume_device }} fstype=auto
+  sudo: yes
+  with_items:
+    - { volume_mount_point: '/data', volume_device: '/dev/vdb' }
+    - { volume_mount_point: '/data_scratch', volume_device: '/dev/vdc' }
+    - { volume_mount_point: '/scratch', volume_device: '/dev/vdd' }
 
 - name: Ensure scripts and stdout directories exists
   hosts: usz_data_export
@@ -13,6 +36,7 @@
     - action: file path=~{{ ansible_ssh_user }}/scripts state=directory owner={{ ansible_ssh_user }}
     - action: file path=~{{ ansible_ssh_user }}/stdout state=directory owner={{ ansible_ssh_user }}
     - action: file path=/apps state=directory owner={{ ansible_ssh_user }}
+    - action: file path=/scratch state=directory owner={{ ansible_ssh_user }}
   sudo: yes
 
 - name: Data export
@@ -22,6 +46,7 @@
     - action: nfsexport path=/data dest=/etc/exports clients=${groups.usz_data_import} options=rw,no_root_squash,sync
     - action: nfsexport path=/data-scratch dest=/etc/exports clients=${groups.usz_data_import} options=rw,no_root_squash,sync
     - action: nfsexport path=/apps dest=/etc/exports clients=${groups.usz_data_import} options=rw,no_root_squash,sync
+    - action: nfsexport path=/scratch dest=/etc/exports clients=${groups.usz_data_import} options=rw,no_root_squash,sync
 
 - name: Data Import
   hosts: usz_data_import
@@ -29,4 +54,5 @@
     - include: common/tasks/nfs-clients.yml nfsserver=${groups.usz_data_export[0]} nfspath=/data nfsmount=/data remount='true'
     - include: common/tasks/nfs-clients.yml nfsserver=${groups.usz_data_export[0]} nfspath=/data-scratch nfsmount=/data-scratch remount='true'
     - include: common/tasks/nfs-clients.yml nfsserver=${groups.usz_data_export[0]} nfspath=/apps nfsmount=/apps remount='true'
+    - include: common/tasks/nfs-clients.yml nfsserver=${groups.usz_data_export[0]} nfspath=/scratch nfsmount=/scratch remount='true'
     - include: gridengine/tasks/clients.yml
