@@ -1,0 +1,9 @@
+# [localhost]
+# localhost ansible_ssh_host=127.0.0.1 ansible_ssh_port=22 ansible_ssh_user=<local-username> ansible_python_interpreter=python
+
+# [local]
+# localhost ansible_ssh_host=127.0.0.1 ansible_ssh_port=22 ansible_ssh_user=<local-username> ansible_python_interpreter=python
+
+# [systbot]
+# systbot ansible_ssh_host=<ip-address> ansible_ssh_port=22 ansible_ssh_user=<default-s3it-username> host_key_checking=False hostfile=/dev/null
+
