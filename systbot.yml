@@ -24,13 +24,16 @@
     bowtie_version: '2.2.4'
     bowtie_url: 'http://downloads.sourceforge.net/project/bowtie-bio/bowtie2/{{ bowtie_version }}/bowtie2-{{ bowtie_version }}-source.zip'
     bowtie_install_dir: '{{ application_dir }}/bowtie-{{ bowtie_version }}'
-    raxml_version: '8.1.1'
+    raxml_version: '8.1.13'
     raxml_url: 'https://github.com/stamatak/standard-RAxML'
     raxml_install_dir: '{{ application_dir }}/raxml-{{ raxml_version }}'
     mrbayes_version: '3.2.3'
     mrbayes_url: 'http://downloads.sourceforge.net/project/mrbayes/mrbayes/{{ mrbayes_version }}/mrbayes-{{ mrbayes_version }}.tar.gz'
     mrbayes_install_dir: '{{ application_dir }}/mrbayes-{{ mrbayes_version }}'
-
+    muscle_version: '1:3.8.31-1'
+    muscle_url: ''
+    muscle_install_dir: ''
+    application_record_file: '/home/{{ ansible_ssh_user }}/systbot-image-details.txt'
   tasks:
     - name: Install required dependencies
       apt: name={{ item }} state=present update_cache=yes
@@ -40,35 +43,58 @@
         - screen
         - git
         - clang
+        - unzip
+        - zlib1g-dev
+        - libbam-dev
       when: "ansible_os_family == 'Debian'"
 
-    # - name: create {{ application_dir }} folder
-    #   file: path={{ application_dir }} state=directory owner={{ ansible_ssh_user }}
-    #   sudo: yes
+    - name: create {{ application_dir }} folder
+      file: path={{ application_dir }} state=directory owner={{ ansible_ssh_user }}
+      sudo: yes
 
-    # - name: BayeScan {{ bayescan_version }}
-    #   include: roles/apps/tasks/bayescan.yml
+    - name: BayeScan {{ bayescan_version }}
+      include: roles/apps/tasks/bayescan.yml
 
-    # - name: pyRAD {{ pyrad_version }}
-    #   include: roles/apps/tasks/pyrad.yml
+    - name: pyRAD {{ pyrad_version }}
+      include: roles/apps/tasks/pyrad.yml
 
     - name: Stacks {{ stacks_version }}
       include: roles/apps/tasks/stacks.yml
 
-    # - name: Structure {{ structure_version }}
-    #   include: roles/apps/tasks/structure.yml
+    - name: Structure {{ structure_version }}
+      include: roles/apps/tasks/structure.yml
 
-    # - name: Samtools {{ samtools_version }}
-    #   include: roles/apps/tasks/samtools.yml
+    - name: Samtools {{ samtools_version }}
+      include: roles/apps/tasks/samtools.yml
 
-    # - name: BWA {{ bwa_version }}
-    #   include: roles/apps/tasks/bwa.yml
+    - name: BWA {{ bwa_version }}
+      include: roles/apps/tasks/bwa.yml
 
-    # - name: Bowtie {{ bowtie_version }}
-    #   include: roles/apps/tasks/bowtie.yml
+    - name: Bowtie {{ bowtie_version }}
+      include: roles/apps/tasks/bowtie.yml
 
-    # - name: RAxML {{ raxml_version }}
-    #   include: roles/apps/tasks/raxml.yml
+    - name: RAxML {{ raxml_version }}
+      include: roles/apps/tasks/raxml.yml
 
-    # - name: MrBayes {{ mrbayes_version }}
-    #   include: roles/apps/tasks/mrbayes.yml
+    - name: MrBayes {{ mrbayes_version }}
+      include: roles/apps/tasks/mrbayes.yml
+
+    - name: muscle {{ muscle_version }}
+      include: roles/apps/tasks/muscle.yml
+
+    - file: path={{ application_record_file }} state=touch mode=0644
+
+    - name: Record installed applications
+      lineinfile: dest={{ application_record_file }} line="{{ item }}"
+      with_items:
+        - 'bayescan {{ bayescan_version }}'
+        - 'pyrad {{ pyrad_version }}'
+        - 'stacks {{ stacks_version }}'
+        - 'structure {{ structure_version }}'
+        - 'samtools {{ samtools_version }}'
+        - 'bwa {{ bwa_version }}'
+        - 'bowtie {{ bowtie_version }}'
+        - 'raxml {{ raxml_version }}'
+        - 'mrbayes {{ mrbayes_version }}'
+        - 'muscle {{ muscle_version }}'
+        
