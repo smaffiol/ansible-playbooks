@@ -1,0 +1,7 @@
+---
+- name: MUSCLE install version {{ muscle_version }}
+  apt: name={{ item }}={{ muscle_version }} state=present update_cache=yes
+  sudo: yes
+  with_items: 
+    - muscle
+  when: "ansible_os_family == 'Debian'"

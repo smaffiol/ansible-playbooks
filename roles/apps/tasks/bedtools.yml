@@ -1,0 +1,49 @@
+---
+- name: VCFTools download version {{ vcftools_version }}
+  get_url: url={{ vcftools_url }} dest={{ download_dir }}
+
+- name: VCFTools open archive
+  command: tar xfz {{ download_dir }}/vcftools_{{ vcftools_version }}.tar.gz -C {{ download_dir }}
+
+- name: VCFTools compile 
+  command: chdir={{ download_dir }}/vcftools_{{ vcftools_version }} make
+  register: compiled
+
+- name: VCFTools create folder
+  file: path={{ vcftools_install_dir }}/bin state=directory owner={{ ansible_ssh_user }}
+  
+- name: VCFTOOLS installing binary
+  command: cp {{ download_dir }}/vcftools_{{ vcftools_version }}/bin/{{ item }} {{ vcftools_install_dir }}/bin
+  with_items:
+    - fill-aa
+    - fill-an-ac
+    - fill-fs
+    - fill-ref-md5
+    - vcf-annotate
+    - vcf-compare
+    - vcf-concat
+    - vcf-consensus
+    - vcf-contrast
+    - vcf-convert
+    - vcf-fix-ploidy
+    - vcf-indel-stats
+    - vcf-isec
+    - vcf-merge
+    - vcf-phased-join
+    - vcf-query
+    - vcf-shuffle-cols
+    - vcf-sort
+    - vcf-stats
+    - vcf-subset
+    - vcftools
+    - vcf-to-tab
+    - vcf-tstv
+    - vcf-validator
+
+- name: VCFTOOLS cleanup
+  file: path={{ download_dir }}/{{ item }} state=absent
+  sudo: yes
+  with_items:
+    - vcftools-{{ vcftools_version }}
+    - vcftools-{{ vcftools_version }}.tar.gz
+
