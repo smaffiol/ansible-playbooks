@@ -1,0 +1,31 @@
+---
+- name: Install BIOC image
+  hosts: bioc
+  vars:
+    application_dir: '/apps'
+    download_dir: '/var/tmp'
+    environments_file: '/etc/environment'
+    rDock_version: '2013.1'
+    rDock_url: 'http://downloads.sourceforge.net/project/rdock/rDock_{{ rDock_version }}_src.tar.gz'
+    rDock_install_dir: '{{ application_dir }}/rDock-{{ rDock_version }}'
+  tasks:
+    - name: Install dependencies (Ubuntu/Debian)
+      apt: name={{ item }} state=present update_cache=yes
+      sudo: yes
+      with_items: 
+        - build-essential
+        - libpopt0
+        - libpopt-dev
+        - libcppunit-1.13-0
+        - libcppunit-dev
+      when: "ansible_os_family == 'Debian'"
+
+    - name: rDock {{ rDock_version }}
+      include: roles/apps/tasks/rdock.yml
+
+    - name: Customize environment file
+      lineinfile: dest=~/.bashrc line={{ item }}
+      with_items:
+        - 'export RBT_ROOT={{ rDock_install_dir }}'
+        - 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$RBT_ROOT/lib'
+        - 'export PATH=$PATH:$RBT_ROOT/bin'

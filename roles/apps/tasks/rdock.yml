@@ -1,0 +1,22 @@
+---
+- name: rDock download version {{ rDock_version }}
+  get_url: url={{ rDock_url }} dest={{ download_dir }}
+  register: archive
+
+- name: rDock open archive
+  command: tar xfz {{ download_dir }}/rDock_{{ rDock_version }}_src.tar.gz -C {{ download_dir }}
+
+- name: rDock compile
+  command: chdir={{ download_dir }}/rDock_{{ rDock_version }}_src/build {{ item }}
+  register: compiled
+  with_items:
+    - make linux-g++-64
+    - make test
+
+- name: rDock cleanup
+  file: path={{ download_dir }}/{{ item }} state=absent
+  sudo: yes
+  with_items:
+    - rDock_{{ rDock_version }}_src.tar.gz
+    - rDock_{{ rDock_version }}_src
+
