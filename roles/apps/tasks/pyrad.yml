@@ -4,7 +4,7 @@
   register: archived
 
 - name: pyRAD open archive
-  command: tar xfz {{ download_dir }}/v.{{ pyrad_version }} -C {{ application_dir }}
+  command: tar xfz {{ download_dir }}/pyrad-v.{{ pyrad_version }}.tar.gz -C {{ application_dir }}/
   register: archive_open
 
 - name: pyRAD cleanup archive
