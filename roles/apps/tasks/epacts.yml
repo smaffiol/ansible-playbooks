@@ -1,35 +1,31 @@
 ---
-- name: Check whether EPACTS has been already installed
-  stat: path="{{ install_dir }}/EPACTS-{{ version }}"
-  register: is_app_installed
+- name: Epacts prepare destination folder in {{ epacts_install_dir }} 
+  command: mkdir -p {{ epacts_install_dir }}
 
-- name: prepare destination folder in {{ install_dir }} 
-  command: mkdir -p {{ install_dir }}/EPACTS-{{ version }}
-  when: is_app_installed.stat.exists == false
-
-- name: Check whether archive has been previosuly downloaded
-  stat: path="{{ download_dir }}/EPACTS-{{ version }}.tar.gz"
+- name: Epacts Check whether archive has been previosuly downloaded
+  stat: path="{{ download_dir }}/EPACTS-{{ epacts_version }}.tar.gz"
   register: downloaded_archive 
-  when: is_app_installed.stat.exists == false
 
-- name: Download archive
-  get_url: url='http://www.sph.umich.edu/csg/kang/epacts/download/EPACTS-{{ version }}.tar.gz' dest={{ download_dir }}
-  when: is_app_installed.stat.exists == false and downloaded_archive.stat.exists == false
+- name: Epacts Download archive
+  get_url: url={{ epacts_url }} dest={{ download_dir }}
+  when: downloaded_archive.stat.exists == false
   register: archive
 
-- name: open archive
-  command: tar xfz {{ download_dir }}/EPACTS-{{ version }}.tar.gz -C {{ download_dir }}
-  when: is_app_installed.stat.exists == false
+- name: Epacts open archive
+  command: tar xfz {{ download_dir }}/EPACTS-{{ epacts_version }}.tar.gz -C {{ download_dir }}
   register: archive_open
 
-- name: compile
-  command: chdir={{ download_dir }}/EPACTS-{{ version }} {{ item }}
+- name: Epacts compile and install
+  command: chdir={{ download_dir }}/EPACTS-{{ epacts_version }} {{ item }}
   with_items:
-    - ./configure --prefix={{ install_dir }}/EPACTS-{{ version }}
+    - ./configure --prefix={{ epacts_install_dir }}
     - make
     - make install
-  when: is_app_installed.stat.exists == false
 
-- name: set variables
+- name: Epacts cleanup
+  file: path={{ download_dir }}/{{ item }} state=absent
   sudo: yes
-  command: echo 'export PATH={{ install_dir }}/EPACTS-{{ version }}:$PATH' >> /etc/environment
+  with_items:
+    - EPACTS-{{ epacts_version }}
+    - EPACTS-{{ epacts_version }}.tar.gz
+
