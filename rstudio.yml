@@ -6,7 +6,6 @@
   hosts: rstudio
   vars:
     download_dir: '/var/tmp'
-    version: 'current'
     rstudio_version: '0.98.1087'
   tasks:
     - name: Install dependecies
