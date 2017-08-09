@@ -18,14 +18,20 @@
         - libpopt-dev
         - libcppunit-1.13-0
         - libcppunit-dev
+        - openbabel
+        - python-numpy
       when: "ansible_os_family == 'Debian'"
 
-    - name: rDock {{ rDock_version }}
+    - name: create {{ application_dir }} folder
+      file: path={{ application_dir }} state=directory owner={{ ansible_ssh_user }}
+      sudo: yes
+
+    - name: rDock 
       include: roles/apps/tasks/rdock.yml
 
     - name: Customize environment file
-      lineinfile: dest=~/.bashrc line={{ item }}
+      lineinfile: dest=~/.bashrc line="{{ item }}" state=present
       with_items:
         - 'export RBT_ROOT={{ rDock_install_dir }}'
         - 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$RBT_ROOT/lib'
-        - 'export PATH=$PATH:$RBT_ROOT/bin'
+        - 'export PATH=$PATH:$RBT_ROOT/exe'
