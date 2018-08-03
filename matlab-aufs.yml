@@ -1,0 +1,195 @@
+---
+- name: Prepare node for Matlab installation
+  hosts: matlab
+  vars:
+    vm_id: ''
+    volume_id: ''
+    volume_device: '/dev/vdb'
+    iso_mountpoint: '/mnt/matlab/'
+    iso_mountpoint_dvd1: '{{ iso_mountpoint }}/dvd1'
+    iso_mountpoint_dvd2: '{{ iso_mountpoint }}/dvd2'
+    iso_mountpoint_merge: '{{ iso_mountpoint }}/merge'
+    volume_mountpoint: '/mnt/volume'
+    matlab_version: 'R2014a'
+    matlab_dvd1: '{{ matlab_version }}_glnxa64_dvd1.iso'
+    matlab_dvd2: '{{ matlab_version }}_glnxa64_dvd2.iso'
+    iso_source_dvd1: '{{ volume_mountpoint }}/matlab/{{ matlab_version }}/{{ matlab_dvd1 }}'
+    iso_source_dvd2: '{{ volume_mountpoint }}/matlab/{{ matlab_version }}/{{ matlab_dvd2 }}'
+    matlab_FIK: ''
+    matlab_license_server: ''
+    matlab_install_dir: '/usr/local'
+  tasks:
+   - name: Ensure apt-daily is not running
+     script: |
+      no-update-on-reboot.sh
+
+   - name: Install dependencies (Ubuntu > 16.04)
+     apt: name={{ item }} state=present update_cache=yes
+     become: yes
+     with_items:
+        - openjdk-8-jre-headless
+        - libxt6 
+        - libxtst6 
+        - libxmu6
+        - libxi6
+        - libgl1-mesa-dev
+        - libglu1
+        - libxrandr2
+        - libjline-java
+        - aufs-tools
+        - linux-image-extra-{{ ansible_kernel }}
+     when: "ansible_distribution == 'Ubuntu' and ansible_distribution_version >= '16.04'"
+
+   - name: Install dependencies (Ubuntu 14.10)
+     apt: name={{ item }} state=present update_cache=yes
+     become: yes
+     with_items: 
+        - openjdk-7-jre-headless
+        - libxt6 
+        - libxtst6 
+        - libxmu6
+        - libxi6
+        - libgl1-mesa
+        - libglu1
+        - libxrandr2
+        - linux-image-extra-{{ ansible_kernel }}
+        - aufs-tools
+     when: "ansible_distribution == 'Ubuntu' and ansible_distribution_version == '14.10'"
+
+   - name: Install Dependencies (Ubuntu 14.04)
+     apt: name={{ item }} state=present update_cache=yes
+     become: yes
+     with_items: 
+        - openjdk-7-jre-headless
+        - libxt6 
+        - libxtst6 
+        - libxmu6
+        - libxi6
+         libgl1-mesa-glx
+        - libglu1
+        - libxrender1
+        - libxrandr2
+        - linux-image-extra-{{ ansible_kernel }}
+        - aufs-tools
+     when: "ansible_distribution == 'Ubuntu' and ansible_distribution_version == '14.04'"
+
+   - name: Attach Matlab ISO Volume
+     include: roles/openstack/tasks/cinder.yml server={{ vm_id }} volume={{ volume_id }} device={{ volume_device }} state=attached
+     register: volume_attached
+
+   - name: Wait to make sure Volume visible within VM
+     pause: seconds=10
+
+   - name: Mount Matlab Volume
+     mount: name={{ volume_mountpoint }} state=mounted src={{ volume_device }} fstype=auto
+     register: volume_mounted
+     become: yes
+
+   - name: Create ISO mount points
+     command: mkdir -p {{ item }}
+     become: yes
+     with_items:
+        - '{{ iso_mountpoint_dvd1 }}'
+        - '{{ iso_mountpoint_dvd2 }}'
+        - '{{ iso_mountpoint_merge }}'
+
+   - name: Mount DVD1 and DVD2
+     mount: name={{ item.mountpoint }} state=mounted src={{ item.source }} fstype=auto
+     become: yes
+     with_items:
+        - { mountpoint: '{{ iso_mountpoint_dvd1 }}', source: '{{ iso_source_dvd1 }}' }
+        - { mountpoint: '{{ iso_mountpoint_dvd2 }}', source: '{{ iso_source_dvd2 }}' }
+
+   - name: Merge mount points
+     command: mount -t aufs -o br={{ iso_mountpoint_dvd1 }}:{{ iso_mountpoint_dvd2 }} none {{ iso_mountpoint_merge }}
+     become: yes
+     register: aufsok
+
+   # The following part will be replaced by the Matlab role (see line above)
+   - name: Prepare Matlab activate file
+     command: cp {{ iso_mountpoint_merge }}/activate.ini /tmp/activate.ini
+
+   - file: path=/tmp/activate.ini state=touch mode=0644
+
+   - name: Prepare installer_input.txt
+     command: cp {{ iso_mountpoint_merge }}/installer_input.txt /tmp/installer_input.txt
+
+   - file: path=/tmp/installer_input.txt state=touch mode=0644
+
+   - name: Create license file
+     command: touch /tmp/license.lic
+
+   - name: Set access permission
+     file: path=/tmp/license.lic mode=0644
+
+   - name: customize activate file
+     lineinfile: dest={{ item.dest }} regexp={{ item.regexp }} line={{ item.line }}
+     with_items:
+        - { dest: '/tmp/activate.ini', regexp: '^"activateCommand="', line: 'activateCommand=activateOffline' }
+        - { dest: '/tmp/activate.ini', regexp: '^"licenseFile="', line: '/tmp/license.lic' }
+        - { dest: '/tmp/installer_input.txt', regexp: '^"# fileInstallationKey"', line: 'fileInstallationKey={{ matlab_FIK }}' }
+        - { dest: '/tmp/installer_input.txt', regexp: '^"# mode"', line: 'mode=silent' }
+        - { dest: '/tmp/installer_input.txt', regexp: '^"# activationPropertiesFile"', line: 'activationPropertiesFile=/tmp/activate.ini' }
+        - { dest: '/tmp/installer_input.txt', regexp: '^"# agreeToLicense"', line: 'agreeToLicense=yes' }
+        - { dest: '/tmp/installer_input.txt', regexp: '^"# licensePath"', line: 'licensePath=/tmp/license.lic' }
+
+   - name: Customize license file
+     lineinfile: dest={{ item.dest }} line={{ item.line }}
+     with_items:
+        - { dest: '/tmp/license.lic', line: '"SERVER {{ matlab_license_server }}"' }
+        - { dest: '/tmp/license.lic', line: '"USE SERVER"' }
+
+   - name: Start silent Matlab installation
+     command: "{{ iso_mountpoint_merge }}/install -inputFile /tmp/installer_input.txt -v "
+     become: yes
+     register: matlab_installed
+
+   - name: Create simlink for matlab
+     file: src=/usr/local/MATLAB/{{ matlab_version }}/bin/matlab dest=/usr/local/bin/matlab state=link
+     become: yes
+     when: matlab_installed.stdout.find("End - Successful") != -1
+
+   - name: Create simlink for mcc
+     file: src=/usr/local/MATLAB/{{ matlab_version }}/bin/mcc dest=/usr/local/bin/mcc state=link
+     become: yes
+     when: matlab_installed.stdout.find("End - Successful") != -1
+
+   - name: Unmount AUFS point
+     command: umount -l {{ iso_mountpoint_merge }}
+     become: yes
+
+   # Clean-up (at the end of the Matlab installation)
+   - name: Umount Matlab ISO and Matlab Volume
+     become: yes
+     mount: name={{ item.mountpoint }} state=unmounted src={{ item.source }} fstype={{ item.fstype }}
+     with_items:
+        - { mountpoint: '{{ iso_mountpoint_dvd1 }}', source: '{{ iso_source_dvd1 }}', fstype: 'iso9660'}
+        - { mountpoint: '{{ iso_mountpoint_dvd1 }}', source: '{{ iso_source_dvd1 }}', fstype: 'iso9660'}
+
+   - name: Umount Matlab Volume
+     become: yes
+     mount: name={{ item.name }} state={{ item.state }} opts={{ item.opts }} src={{ item.src }} fstype={{ item.fstype }}
+     with_items:
+        - { name: '{{ volume_mountpoint }}', state: 'unmounted', src: '{{ volume_device }}', fstype: 'auto', opts: ''}
+
+   - name: Detach Volume
+     include: roles/openstack/tasks/cinder.yml server={{ vm_id }} volume={{ volume_id }} device={{ volume_device }} state=detached
+     when: not download_iso
+
+   - name: Cleanup for snapshot
+     command: rm -rf {{ item }}
+     become: yes
+     with_items:
+        - "/var/lib/cloud/data/*"
+        - "/var/lib/cloud/instances/*"
+        - "{{ ansible_user_dir }}/.become_as_admin_successful"
+        - /etc/cloud/uzh-customization-script
+        # - /root/.ssh/authorized_keys
+        - "{{ ansible_user_dir }}/.ssh/authorized_keys"
+
+   - name: Re-create user authorized_keys
+     file: path="{{ ansible_user_dir }}/.ssh/authorized_keys" state=touch
+
+   - name: Re-create root authorized_keys
+     file: path=/root/.ssh/authorized_keys state=touch
+     become: yes

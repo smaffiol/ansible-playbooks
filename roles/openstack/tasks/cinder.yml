@@ -1,6 +1,7 @@
 ---
 - name: Check Cinder volume state
-  local_action: command nova volume-show {{ volume }}
+  # local_action: command nova volume-show {{ volume }}
+  local_action: command openstack volume show {{ volume }}
   register: volume_state
 
 - name: Attach Cinder volume
