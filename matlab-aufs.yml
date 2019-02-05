@@ -16,14 +16,28 @@
     iso_source_dvd1: '{{ volume_mountpoint }}/matlab/{{ matlab_version }}/{{ matlab_dvd1 }}'
     iso_source_dvd2: '{{ volume_mountpoint }}/matlab/{{ matlab_version }}/{{ matlab_dvd2 }}'
     matlab_FIK: ''
-    matlab_license_server: ''
+    matlab_license_server_name: ''
+    matlab_license_server_id: ''
+    matlab_license_server_port: ''
     matlab_install_dir: '/usr/local'
   tasks:
-   - name: Ensure apt-daily is not running
-     script: |
-      no-update-on-reboot.sh
+   - name: Install dependencies (Ubuntu >= 18.04)
+     apt: name={{ item }} state=present update_cache=yes
+     become: yes
+     with_items:
+        - openjdk-8-jre-headless
+        - libxt6 
+        - libxtst6 
+        - libxmu6
+        - libxi6
+        - libgl1-mesa-dev
+        - libglu1
+        - libxrandr2
+        - libjline-java
+        - aufs-tools
+     when: "ansible_distribution == 'Ubuntu' and ansible_distribution_version >= '18.04'"
 
-   - name: Install dependencies (Ubuntu > 16.04)
+   - name: Install dependencies (16.04 <= Ubuntu < 18.04)
      apt: name={{ item }} state=present update_cache=yes
      become: yes
      with_items:
@@ -38,7 +52,7 @@
         - libjline-java
         - aufs-tools
         - linux-image-extra-{{ ansible_kernel }}
-     when: "ansible_distribution == 'Ubuntu' and ansible_distribution_version >= '16.04'"
+     when: "ansible_distribution == 'Ubuntu' and '16.04' <= ansible_distribution_version and ansible_distribution_version < 18.04"
 
    - name: Install dependencies (Ubuntu 14.10)
      apt: name={{ item }} state=present update_cache=yes
@@ -65,7 +79,7 @@
         - libxtst6 
         - libxmu6
         - libxi6
-         libgl1-mesa-glx
+        - libgl1-mesa-glx
         - libglu1
         - libxrender1
         - libxrandr2
@@ -136,7 +150,7 @@
    - name: Customize license file
      lineinfile: dest={{ item.dest }} line={{ item.line }}
      with_items:
-        - { dest: '/tmp/license.lic', line: '"SERVER {{ matlab_license_server }}"' }
+        - { dest: '/tmp/license.lic', line: '"SERVER {{ matlab_license_server_name }}"' }
         - { dest: '/tmp/license.lic', line: '"USE SERVER"' }
 
    - name: Start silent Matlab installation
@@ -154,6 +168,18 @@
      become: yes
      when: matlab_installed.stdout.find("End - Successful") != -1
 
+   - name: Deploy network license file
+     become: yes
+     template:
+       src: templates/network.lic.j2
+       dest: /usr/local/MATLAB/{{ matlab_version }}/licenses/network.lic
+       owner: root
+       group: root
+       mode: "u=rw,g=r,o=r"  
+
+   - name: Check matlab works
+     shell: matlab -nojvm -nodesktop -desktop -nosplash -nodisplay -r "exit" | grep {{ matlab_version }}
+
    - name: Unmount AUFS point
      command: umount -l {{ iso_mountpoint_merge }}
      become: yes
@@ -161,20 +187,19 @@
    # Clean-up (at the end of the Matlab installation)
    - name: Umount Matlab ISO and Matlab Volume
      become: yes
-     mount: name={{ item.mountpoint }} state=unmounted src={{ item.source }} fstype={{ item.fstype }}
+     mount: name={{ item.mountpoint }} state=absent src={{ item.source }} fstype={{ item.fstype }}
      with_items:
         - { mountpoint: '{{ iso_mountpoint_dvd1 }}', source: '{{ iso_source_dvd1 }}', fstype: 'iso9660'}
-        - { mountpoint: '{{ iso_mountpoint_dvd1 }}', source: '{{ iso_source_dvd1 }}', fstype: 'iso9660'}
+        - { mountpoint: '{{ iso_mountpoint_dvd2 }}', source: '{{ iso_source_dvd2 }}', fstype: 'iso9660'}
 
    - name: Umount Matlab Volume
      become: yes
      mount: name={{ item.name }} state={{ item.state }} opts={{ item.opts }} src={{ item.src }} fstype={{ item.fstype }}
      with_items:
-        - { name: '{{ volume_mountpoint }}', state: 'unmounted', src: '{{ volume_device }}', fstype: 'auto', opts: ''}
+        - { name: '{{ volume_mountpoint }}', state: 'absent', src: '{{ volume_device }}', fstype: 'auto', opts: ''}
 
    - name: Detach Volume
      include: roles/openstack/tasks/cinder.yml server={{ vm_id }} volume={{ volume_id }} device={{ volume_device }} state=detached
-     when: not download_iso
 
    - name: Cleanup for snapshot
      command: rm -rf {{ item }}
@@ -193,3 +218,13 @@
    - name: Re-create root authorized_keys
      file: path=/root/.ssh/authorized_keys state=touch
      become: yes
+
+   - name: Register timestamp
+     shell: "date +%x_%H:%M:%S"
+     register: tstamp
+
+   - name: Create snapshot
+     include: roles/openstack/tasks/snapshot.yml
+     vars:
+       server: "{{ vm_id }}"
+       snapshot_name: "\"Matlab-{{ matlab_version }} {{ ansible_distribution }} {{ ansible_distribution_version }} ({{ tstamp.stdout }})\""
