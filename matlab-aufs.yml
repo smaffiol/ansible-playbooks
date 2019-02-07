@@ -26,6 +26,7 @@
      become: yes
      with_items:
         - openjdk-8-jre-headless
+	- build-essential
         - libxt6 
         - libxtst6 
         - libxmu6
@@ -42,6 +43,7 @@
      become: yes
      with_items:
         - openjdk-8-jre-headless
+	- build-essential
         - libxt6 
         - libxtst6 
         - libxmu6
